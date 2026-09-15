@@ -53,6 +53,8 @@ class DecompileResult(TypedDict):
     addr: str
     code: str | None
     refs: NotRequired[list[Ref]]
+    backend: NotRequired[str]
+    language: NotRequired[str]
     error: NotRequired[str]
 
 
@@ -756,16 +758,31 @@ def _profile_function(
 def decompile(
     addr: Annotated[str, "Function address or name to decompile"],
     include_addresses: Annotated[
-        bool, "Append /*0xNNNN*/ markers per line (default: true). Set false to save tokens."
+        bool, "Include backend-supported address annotations (default: true). Native code uses line markers; source providers may only identify the function entry."
     ] = True,
 ) -> DecompileResult:
-    """Decompile function(s) at address(es); returns pseudocode and per-item errors."""
+    """Decompile functions by address or name using Hex-Rays or an installed decompiler provider (for example Lua bytecode). Use server_health.decompiler_ready to check availability; hexrays_ready=false alone does not mean decompilation is unavailable. Returns code, references and per-item errors; provider output includes backend and language."""
     try:
         start = parse_address(addr)
         code, err = decompile_function_safe(start, include_addresses=include_addresses)
         if code is None:
             return {"addr": addr, "code": None, "error": err or "Decompilation failed"}
         result: DecompileResult = {"addr": addr, "code": code}
+        from .decompiler_providers import get_provider
+
+        provider = get_provider()
+        if provider is not None:
+            result["backend"] = provider.name
+            result["language"] = provider.language
+            if provider.references is not None:
+                try:
+                    refs = provider.references(start)
+                    if refs:
+                        result["refs"] = refs
+                except Exception:
+                    # Reference enrichment must not discard usable source.
+                    pass
+            return result
         try:
             import ida_hexrays
 

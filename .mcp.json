@@ -5,7 +5,10 @@
       "args": [
         "run",
         "idalib-mcp",
-        "--stdio"
+        "--stdio",
+        "--unsafe",
+        "--ext",
+        "dbg"
       ],
       "cwd": ".",
       "env_vars": [
@@ -21,7 +24,12 @@
         "IDA_MCP_TOOL_TIMEOUT_SEC",
         "IDA_MCP_URL",
         "IDA_MCP_WEDGED_GRACE_SEC",
-        "IDA_MCP_WORKER_CALL_TIMEOUT"
+        "IDA_MCP_WORKER_CALL_TIMEOUT",
+        "LUA_RE_JAVA",
+        "LUA_RE_UNLUAC_JAR",
+        "JAVA_HOME",
+        "JRE_HOME",
+        "IDAUSR"
       ]
     }
   }

@@ -55,6 +55,9 @@ class ServerHealthResult(TypedDict, total=False):
     imagebase: str
     auto_analysis_ready: bool | None
     hexrays_ready: bool
+    decompiler_ready: bool
+    decompiler_backend: str
+    decompiler_hint: str
     strings_cache_ready: bool
     strings_cache_size: int
     busy_tool: str
@@ -372,7 +375,10 @@ def _build_health_payload() -> dict:
     except Exception:
         idb_path = None
 
+    from .decompiler_providers import decompiler_status
+
     return {
+        **decompiler_status(hexrays_ready),
         "status": "ok",
         "uptime_sec": round(time.time() - _server_started_at, 3),
         "idb_path": idb_path,

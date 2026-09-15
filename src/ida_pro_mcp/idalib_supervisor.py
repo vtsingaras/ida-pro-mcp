@@ -14,6 +14,7 @@ import importlib.util
 import json
 import logging
 import os
+import re
 import signal
 import socket
 import subprocess
@@ -228,10 +229,12 @@ class IdalibSupervisor:
         *,
         max_workers: int = 4,
         worker_args: list[str] | None = None,
+        extensions: set[str] | None = None,
     ):
         self.mcp = mcp
         self.max_workers = max_workers
         self.worker_args = worker_args or []
+        self.extensions = frozenset(extensions or ())
         self.sessions: dict[str, WorkerSession] = {}
         self.path_to_session: dict[str, str] = {}
         self._schema_worker: WorkerSession | None = None
@@ -433,8 +436,11 @@ class IdalibSupervisor:
     # JSON-RPC forwarding
     # ------------------------------------------------------------------
 
+    def _active_extensions(self) -> set[str]:
+        return set(self.extensions) | set(getattr(self.mcp._enabled_extensions, "data", set()))
+
     def _worker_request_path(self) -> str:
-        enabled = sorted(getattr(self.mcp._enabled_extensions, "data", set()))
+        enabled = sorted(self._active_extensions())
         if enabled:
             return f"/mcp?ext={','.join(enabled)}"
         return "/mcp"
@@ -1208,7 +1214,7 @@ class IdalibSupervisor:
     # ------------------------------------------------------------------
 
     def worker_tools(self) -> list[dict]:
-        cache_key = tuple(sorted(getattr(self.mcp._enabled_extensions, "data", set())))
+        cache_key = tuple(sorted(self._active_extensions()))
         with self._lock:
             cached = self._tools_cache.get(cache_key)
             if cached is not None:
@@ -1473,6 +1479,11 @@ def main() -> None:
     parser.add_argument("--port", type=int, default=8745, help="HTTP port, default: 8745")
     parser.add_argument("--unsafe", action="store_true", help="Enable unsafe worker tools (DANGEROUS)")
     parser.add_argument(
+        "--ext",
+        default="",
+        help="Comma-separated worker extension groups for stdio (for example dbg). HTTP clients use ?ext=.",
+    )
+    parser.add_argument(
         "--profile",
         type=Path,
         default=None,
@@ -1487,6 +1498,11 @@ def main() -> None:
     )
     parser.add_argument("input_path", type=Path, nargs="?", help="Optional binary to open on startup.")
     args = parser.parse_args()
+    extensions = {name.strip() for name in args.ext.split(",") if name.strip()}
+    if extensions and not args.stdio:
+        parser.error("--ext is for --stdio; HTTP clients select extensions with ?ext=")
+    if any(not re.fullmatch(r"[A-Za-z0-9_-]+", name) for name in extensions):
+        parser.error("--ext must contain comma-separated extension names")
 
     logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO)
 
@@ -1503,6 +1519,7 @@ def main() -> None:
         mcp,
         max_workers=args.max_workers,
         worker_args=worker_args,
+        extensions=extensions,
     )
     mcp.registry.dispatch = dispatch_supervisor
 
