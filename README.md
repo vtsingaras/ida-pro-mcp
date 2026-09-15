@@ -1,3 +1,8 @@
+> Fork note: this is a fork of [mrexodia/ida-pro-mcp](https://github.com/mrexodia/ida-pro-mcp)
+> with [generic decompiler-provider support](devdocs/decompiler-providers.md).
+> Install it through [vtsingaras/codex-marketplace](https://github.com/vtsingaras/codex-marketplace).
+> [Lua RE](https://github.com/vtsingaras/lua-re/tree/master/lua/ida) is installed separately into IDA.
+
 # IDA Pro MCP
 
 Simple [MCP Server](https://modelcontextprotocol.io/introduction) to allow vibe reversing in IDA Pro.

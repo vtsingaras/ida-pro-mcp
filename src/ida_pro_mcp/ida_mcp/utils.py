@@ -1146,6 +1146,16 @@ def decompile_function_safe(
     import ida_kernwin
 
     try:
+        from .decompiler_providers import get_provider
+
+        provider = get_provider()
+        if provider is not None:
+            # A matching provider owns failures; do not fall through to a
+            # machine-code decompiler for a bytecode database.
+            source = provider.decompile(ea, include_addresses)
+            if not isinstance(source, str):
+                raise TypeError(f"{provider.name} returned non-text source")
+            return source, None
         cfunc = decompile_checked(ea)
         sv = cfunc.get_pseudocode()
         lines = []

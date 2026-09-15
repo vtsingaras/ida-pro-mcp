@@ -27,6 +27,24 @@ Use modern `ida_*` modules. Avoid legacy `idc` module.
 | Flow graphs | `ida_gdl` | `FlowChart`, `BasicBlock` |
 | Register tracking | `ida_regfinder` | `find_reg_value`, `reg_value_info_t` |
 
+## Decompiler availability
+
+Use the standard MCP `decompile` tool for functions by name or address.
+The server can use Hex-Rays or an installed decompiler provider. Check
+`server_health.decompiler_ready`, `decompiler_backend` and `decompiler_hint`
+for effective availability; `hexrays_ready: false` alone does not mean
+decompilation is unavailable.
+
+Follow the backend's setup hint when a dependency is missing. Configure
+dependencies outside the MCP stream; a tool call should never require
+interactive terminal input.
+
+Provider source does not necessarily expose Hex-Rays ctree or microcode.
+Use backend-specific capabilities only when advertised. Preserve the address
+mappings actually supplied by the backend rather than inventing correspondence
+between source lines and instructions. Confirm important behavior against
+disassembly and cross-references.
+
 ## Core Patterns
 
 ### Iterate functions
